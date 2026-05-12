@@ -10,7 +10,18 @@ AI Coding Agent / MCP / API / CLI / Chat Interface を通じて、UIを開かず
 | 1 | [01-demo-runbook.md](./01-demo-runbook.md) | 顧客向けデモ実施手順 (CSE向け Runbook) |
 | 2 | [02-dashboard-alternative.md](./02-dashboard-alternative.md) | ダッシュボードカスタマイズ要望への代替提案 |
 | 3 | [03-environment-requirements.md](./03-environment-requirements.md) | デモに必要な環境一覧 (一般) |
-| 4 | [04-gke-setup.md](./04-gke-setup.md) | GKE版 デモ構成 |
+| 4 | [04-gke-setup.md](./04-gke-setup.md) | GKE版 Terraform Runbook |
+| - | [terraform/](./terraform/) | 実行可能な Terraform コード (GKE + Sysdig Agent + Workload) |
+
+## 環境構築フロー (明日の本番)
+
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars   # project_id と sysdig_access_key を埋める
+terraform init && terraform apply              # 10〜15分
+```
+
+詳細手順は [04-gke-setup.md](./04-gke-setup.md) を参照。
 
 ## デモのコアメッセージ
 

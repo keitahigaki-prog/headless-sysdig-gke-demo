@@ -1,0 +1,16 @@
+# Copy this to terraform.tfvars and fill in your values.
+# terraform.tfvars is gitignored.
+
+project_id = "your-gcp-project-id"
+
+# Sysdig — US East tenant
+sysdig_access_key      = "REPLACE_WITH_AGENT_ACCESS_KEY"
+sysdig_region          = "us1"
+sysdig_collector_host  = "ingest.app.sysdigcloud.com"
+
+# Optional overrides
+# zone           = "asia-northeast1-a"
+# cluster_name   = "headless-demo"
+# node_count     = 2
+# machine_type   = "e2-standard-2"
+# namespace      = "production"
