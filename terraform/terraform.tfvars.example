@@ -3,14 +3,19 @@
 
 project_id = "your-gcp-project-id"
 
-# Sysdig — US East tenant
+# Sysdig — VERIFY YOUR REGION from the UI URL you log in to:
+#   app.sysdigcloud.com       -> region=us1, collector=collector.sysdigcloud.com
+#   us2.app.sysdig.com        -> region=us2, collector=ingest-us2.app.sysdig.com
+#   app.us4.sysdig.com        -> region=us4, collector=ingest.us4.sysdig.com
+#   eu1.app.sysdig.com        -> region=eu1, collector=ingest.eu1.app.sysdig.com
+#   app.au1.sysdig.com        -> region=au1, collector=ingest.au1.app.sysdig.com
 sysdig_access_key      = "REPLACE_WITH_AGENT_ACCESS_KEY"
-sysdig_region          = "us1"
-sysdig_collector_host  = "ingest.app.sysdigcloud.com"
+sysdig_region          = "us2"
+sysdig_collector_host  = "ingest-us2.app.sysdig.com"
 
-# Optional overrides
+# Optional overrides (defaults in variables.tf are fine for demo)
 # zone           = "asia-northeast1-a"
 # cluster_name   = "headless-demo"
 # node_count     = 2
-# machine_type   = "e2-standard-2"
+# machine_type   = "e2-standard-4"   # e2-standard-2 is too small for sysdig agent + node-analyzer
 # namespace      = "production"

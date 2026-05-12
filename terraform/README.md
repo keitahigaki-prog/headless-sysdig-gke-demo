@@ -72,5 +72,11 @@ terraform destroy
 
 - **`nginx:1.16` には curl/nc が入っていない** ので Runtime Event 発火は `attacker-shell` (nicolaka/netshoot) Pod から実施する
 - Sysdig Agent の Helm chart のキー名は時々変わる。`apply` が失敗したら `helm show values sysdig/sysdig-deploy` で確認
-- Sysdig SaaS のリージョンと collector host は必ず一致させる (`us1` ⇔ `ingest.app.sysdigcloud.com`)
+- Sysdig SaaS のリージョンと collector host は必ず一致させる (UI URL で確認):
+  - `app.sysdigcloud.com` (us1) → `collector.sysdigcloud.com`
+  - `us2.app.sysdig.com` (us2) → `ingest-us2.app.sysdig.com`
+  - `eu1.app.sysdig.com` (eu1) → `ingest.eu1.app.sysdig.com`
+  - `app.au1.sysdig.com` (au1) → `ingest.au1.app.sysdig.com`
+- `e2-standard-2` は **小さすぎる** (sysdig-agent + node-analyzer の 4 コンテナで CPU 足りない)。`e2-standard-4` 以上を使う
+- `sysdig-agent-node-analyzer` の `sysdig-benchmark-runner` だけが CrashLoopBackOff になっても気にしない (テナントに Compliance 機能が無いだけで、Headless デモには影響しない)
 - Workload Identity デモを盛り込みたい場合は別途 `google_service_account` + `iam_binding` を足す (`04-gke-setup.md` 参照)

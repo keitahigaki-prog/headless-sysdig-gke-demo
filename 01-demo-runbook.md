@@ -88,14 +88,21 @@ AIが Sysdig API / Runtime Context / Graph を使って自律実行。
 - 脆弱コンテナがある
 
 #### AI Agent
-推奨:
-- Cursor
-- Claude Code
-- VSCode + Agent
-- OpenAI Codex系
 
-#### MCP接続
-Headless Sysdig の MCP endpoint を接続。
+**公式サポートは Claude Code のみ** (Public Beta 時点)。Cursor 等の他 MCP 互換 Agent は理論上動くが launch 時点で非サポート。
+
+#### プラグイン
+
+Sysdig 公式の Skills プラグインを Claude Code に導入する:
+
+```
+/plugin marketplace add sysdig/skills
+/plugin install headless-cloud-security@sysdig-skills
+```
+
+参考:
+- https://github.com/sysdig/skills
+- https://www.sysdig.com/blog/introducing-headless-cloud-security
 
 ---
 
@@ -303,8 +310,7 @@ Generate remediation steps and create a patch suggestion.
 ## 11. 最終的な理想構成
 
 ### デモマシン
-- Cursor
-- VSCode
+- Claude Code (sysdig-skills プラグイン導入済み)
 - Terminal
 - Browser (最後だけ)
 

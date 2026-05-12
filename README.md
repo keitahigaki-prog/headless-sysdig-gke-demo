@@ -13,7 +13,9 @@ AI Coding Agent / MCP / API / CLI / Chat Interface を通じて、UIを開かず
 | 4 | [04-gke-setup.md](./04-gke-setup.md) | GKE版 Terraform Runbook |
 | - | [terraform/](./terraform/) | 実行可能な Terraform コード (GKE + Sysdig Agent + Workload) |
 
-## 環境構築フロー (明日の本番)
+## 環境構築フロー
+
+### 1. GCP / GKE / Sysdig Agent / Workload を Terraform で構築
 
 ```bash
 cd terraform
@@ -21,7 +23,37 @@ cp terraform.tfvars.example terraform.tfvars   # project_id と sysdig_access_ke
 terraform init && terraform apply              # 10〜15分
 ```
 
+### 2. Claude Code に Sysdig Skills プラグインを入れる
+
+事前に Sysdig UI → Settings → Sysdig API で **API Token** を発行。
+
+```bash
+export SYSDIG_SECURE_URL=https://<your-region>.app.sysdig.com
+export SYSDIG_SECURE_API_TOKEN=<paste-token>
+```
+
+Claude Code 内で:
+
+```
+/plugin marketplace add sysdig/skills
+/plugin install headless-cloud-security@sysdig-skills
+```
+
+→ Claude Code 再起動 → デモクエリへ。
+
 詳細手順は [04-gke-setup.md](./04-gke-setup.md) を参照。
+
+## 公式リソース
+
+- Plugin GitHub: https://github.com/sysdig/skills
+- 紹介ブログ: https://www.sysdig.com/blog/introducing-headless-cloud-security
+- Sysdig SaaS Regions: https://docs.sysdig.com/en/administration/saas-regions-and-ip-ranges/
+
+## 重要な注意点
+
+- **公式サポートは Claude Code のみ** (Public Beta 時点)。Cursor 等は理論互換のみ。
+- **Sysdig Sage がテナント側で有効化されている必要がある** (Headless プラグインの前提)。
+- Sysdig SaaS のリージョンは **UI URL で確認** すること (`us2.app.sysdig.com` なら us2)。「US East」と聞いても鵜呑みにしない。
 
 ## デモのコアメッセージ
 

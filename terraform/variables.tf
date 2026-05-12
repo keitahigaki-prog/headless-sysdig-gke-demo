@@ -28,9 +28,9 @@ variable "node_count" {
 }
 
 variable "machine_type" {
-  description = "GKE node machine type."
+  description = "GKE node machine type. e2-standard-2 is too small for sysdig-agent + node-analyzer DaemonSets — use e2-standard-4 or bigger."
   type        = string
-  default     = "e2-standard-2"
+  default     = "e2-standard-4"
 }
 
 # ---- Sysdig ----
@@ -48,9 +48,9 @@ variable "sysdig_region" {
 }
 
 variable "sysdig_collector_host" {
-  description = "Sysdig collector hostname (must match sysdig_region)."
+  description = "Sysdig collector hostname (must match sysdig_region). us1=collector.sysdigcloud.com, us2=ingest.us2.app.sysdig.com, eu1=ingest.eu1.app.sysdig.com, au1=ingest.au1.app.sysdig.com."
   type        = string
-  default     = "ingest.app.sysdigcloud.com"
+  default     = "collector.sysdigcloud.com"
 }
 
 variable "namespace" {
